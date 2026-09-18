@@ -100,6 +100,16 @@ Le travail se fait **obligatoirement en équipe de 2** sur un dépôt Git partag
 L'historique Git fait partie de l'évaluation. Un historique avec un seul commit ou des commits uniquement d'un seul membre sera pénalisé.
 
 ---
+## Remise du code
+
+Le formulaire suivant doit être rempli afin de soumettre le URL de votre dépôt: [Formulaire de remise URL dépôt](https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=fZIiqRI31kuSUUlrEYB_qCr_VvmTz8pMlcGltMEVD6pUQ1VHOEY3RDA2SzBCM0xGWVMyWElHTUc2OS4u)
+
+**Date limite de remise du code :** la veille de votre soutenance à 23h59.
+- Groupe 01 : lundi 5 octobre à 23h59
+- Groupe 02 : jeudi 8 octobre à 23h59
+
+
+---
 
 ## Soutenance orale
 
@@ -110,9 +120,7 @@ Une soutenance orale d'une durée maximale de **10 minutes par équipe** aura li
 | Groupe 01 | Mardi 6 octobre 2026 | Pendant les heures de cours |
 | Groupe 02 | Vendredi 9 octobre 2026 (journée du lundi au calendrier scolaire) | Pendant les heures de cours |
 
-> **Date limite de remise du code :** la veille de votre soutenance à 23h59.
-> - Groupe 01 : lundi 5 octobre à 23h59
-> - Groupe 02 : jeudi 8 octobre à 23h59
+
 
 **Déroulement de la soutenance :**
 - Présentation concise et efficace de votre solution (~3-4 min)
