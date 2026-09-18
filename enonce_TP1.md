@@ -82,6 +82,7 @@ portfolio/
 - Un diagramme UML de classes dans `UML.md` ou `UML.png` doit être fourni
 
 Vous pouvez ajouter des fonctionnalités mineures ou améliorer l'application lors de votre réusinage, **tant que vous êtes capable d'expliquer les modifications** lors de la soutenance orale.
+
 ---
 
 ## Travail en équipe et Git
