@@ -1,4 +1,5 @@
-from modeles.sujet import Sujet
+from models.subject import Sujet
+
 
 class Portfolio(Sujet):
     def __init__(self):
@@ -29,18 +30,10 @@ class Portfolio(Sujet):
         self._titres[titre.ticker] = titre
         self.notifier()
 
-    def modifier_titre(
-        self,
-        ticker,
-        quantite,
-        seuil_haut,
-        seuil_bas
-    ):
+    def modifier_titre(self, ticker, quantite, seuil_haut, seuil_bas):
         if ticker in self._titres:
             self._titres[ticker].modifier(
-                quantite,
-                seuil_haut,
-                seuil_bas
+                quantite, seuil_haut, seuil_bas
             )
             self.notifier()
 
@@ -54,9 +47,8 @@ class Portfolio(Sujet):
             if ticker in self._titres:
                 self._titres[ticker].mettre_a_jour_prix(
                     donnees["prix"],
-                    donnees["ouverture"]
+                    donnees["ouverture"],
                 )
-
         self.notifier()
 
     def get_titre(self, ticker):

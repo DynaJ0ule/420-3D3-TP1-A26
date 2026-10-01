@@ -1,9 +1,7 @@
-from modeles.sujet import Sujet
+from models.subject import Sujet
 
 
 class Titre(Sujet):
-    """Sujet représentant un titre boursier."""
-
     def __init__(self, ticker, quantite, seuil_haut, seuil_bas):
         self._observateurs = []
         self._ticker = ticker
@@ -25,7 +23,7 @@ class Titre(Sujet):
         for observateur in self._observateurs:
             observateur.actualiser()
 
-    def get_donnees(self):
+    def get_donnees(self) -> dict:
         return {
             "ticker": self._ticker,
             "prix": self._prix,
@@ -40,13 +38,10 @@ class Titre(Sujet):
         self._ouverture = ouverture
         self.notifier()
 
-    def modifier(self, quantite=None, seuil_haut=None, seuil_bas=None):
-        if quantite is not None:
-            self._quantite = quantite
-        if seuil_haut is not None:
-            self._seuil_haut = seuil_haut
-        if seuil_bas is not None:
-            self._seuil_bas = seuil_bas
+    def modifier(self, quantite, seuil_haut, seuil_bas):
+        self._quantite = quantite
+        self._seuil_haut = seuil_haut
+        self._seuil_bas = seuil_bas
         self.notifier()
 
     @property

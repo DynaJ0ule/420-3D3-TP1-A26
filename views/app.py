@@ -1,7 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox
-
 import yfinance as yf
+
+yf.config.debug.hide_exceptions = False
+yf.config.network.retries = 2
 
 from modeles.portfolio import Portfolio
 from modeles.titre import Titre
@@ -19,22 +21,17 @@ INTERVALLE_MS = 30000
 
 
 def recuperer_prix(ticker):
-    action = yf.Ticker(ticker)
+    try:
+        action = yf.Ticker(ticker)
 
-    fast_info = action.fast_info
+        prix = action.fast_info["last_price"]
+        ouverture = action.fast_info["open"]
 
-    prix = fast_info.get("last_price")
-    ouverture = fast_info.get("open")
+        return float(prix), float(ouverture)
 
-    if prix is None:
-        raise ValueError(
-            f"Impossible de récupérer le prix de {ticker}"
-        )
-
-    if ouverture is None:
-        ouverture = prix
-
-    return prix, ouverture
+    except Exception as e:
+        print(f"Erreur yfinance pour {ticker} : {e}")
+        raise Exception(f"Impossible de récupérer le prix de {ticker}")
 
 
 class App:
