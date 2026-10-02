@@ -17,17 +17,14 @@ class Logger(Observateur):
             self._fichier,
             "a",
             newline="",
-            encoding="utf-8"
+            encoding="utf-8",
         ) as fichier:
-
             writer = csv.writer(fichier)
 
             for titre in titres.values():
                 writer.writerow([
-                    datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     titre["ticker"],
-                    titre["prix"],
-                    titre["quantite"]
+                    f'{titre["prix"]:.2f}',
+                    f'{titre["ouverture"]:.2f}',
                 ])

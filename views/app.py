@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox
+from datetime import datetime
 import yfinance as yf
 
-yf.config.debug.hide_exceptions = False
-yf.config.network.retries = 2
+
 
 from modeles.portfolio import Portfolio
 from modeles.titre import Titre
@@ -16,582 +16,635 @@ from observateurs.mise_a_jour import MiseAJour
 from observateurs.logger import Logger
 from observateurs.tableau_de_bord import TableauDeBord
 
-
 INTERVALLE_MS = 30000
 
+POLICE = ("Segoe UI", 10)
+POLICE_TITRE = ("Segoe UI", 16, "bold")
+POLICE_VALEUR = ("Segoe UI", 13, "bold")
 
 def recuperer_prix(ticker):
+    """Retourne (prix, ouverture) avec yfinance."""
     try:
-        action = yf.Ticker(ticker)
+        info = yf.Ticker(ticker).fast_info
+        prix = info["last_price"]
+        ouverture = info["open"]
 
-        prix = action.fast_info["last_price"]
-        ouverture = action.fast_info["open"]
+        if prix is None:
+            raise ValueError(f"Le titre '{ticker}' n'existe pas.")
 
         return float(prix), float(ouverture)
 
     except Exception as e:
         print(f"Erreur yfinance pour {ticker} : {e}")
-        raise Exception(f"Impossible de récupérer le prix de {ticker}")
+        raise Exception(f"Impossible de récupérer le prix de {ticker}") from e
+
+
+def entier_positif(texte):
+    valeur = int(texte)
+    if valeur <= 0:
+        raise ValueError
+    return valeur
+
+
+def flottant_positif(texte):
+    valeur = float(texte)
+    if valeur <= 0:
+        raise ValueError
+    return valeur
 
 
 class App:
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("Portfolio Tracker")
-        self.root.geometry("850x650")
+        self.fenetre = tk.Tk()
+        self.fenetre.title("Portfolio Tracker")
+        self.fenetre.resizable(False, False)
+        self.fenetre.option_add("*Font", POLICE)
 
         self.portfolio = Portfolio()
 
+        self.labels_prix = {}
+        self.frames_prix = {}
         self.prix_observateurs = {}
 
+        self.label_valeur = None
+        self.label_variation = None
+        self.label_alertes = None
+        self.label_maj = None
+        self.label_statut_titres = None
+
         self.creer_portfolio_initial()
-
         self.creer_observateurs()
-
         self.creer_interface()
 
-        self.rafraichir()
-
-    # --------------------------------------------------
-    # PORTFOLIO
-    # --------------------------------------------------
-
     def creer_portfolio_initial(self):
-        titres = [
-            Titre("AAPL", 10, 200, 150),
-            Titre("GOOGL", 5, 160, 120),
-            Titre("MSFT", 8, 430, 380)
-        ]
+        titres_initiaux = {
+            "AAPL": (10, 200.0, 150.0),
+            "GOOGL": (5, 160.0, 120.0),
+            "MSFT": (8, 430.0, 380.0),
+        }
 
-        for titre in titres:
+        for ticker, (quantite, seuil_haut, seuil_bas) in titres_initiaux.items():
+            titre = Titre(
+                ticker,
+                quantite,
+                seuil_haut,
+                seuil_bas,
+            )
+
             self.portfolio.ajouter_titre(titre)
 
-    # --------------------------------------------------
-    # OBSERVATEURS
-    # --------------------------------------------------
-
     def creer_observateurs(self):
-
-        self.liste_observateur = ListeGestion(
-            self.portfolio,
-            self.actualiser_liste
+        self.portfolio.abonner(
+            ListeGestion(self.portfolio, self.actualiser_liste)
         )
-
-        self.total_observateur = Total(
-            self.portfolio,
-            self.actualiser_total
+        self.portfolio.abonner(
+            Total(self.portfolio, self.actualiser_total)
         )
-
-        self.alertes_observateur = Alertes(
-            self.portfolio,
-            self.actualiser_alertes
+        self.portfolio.abonner(
+            Alertes(self.portfolio, self.actualiser_alertes)
+        )
+        self.portfolio.abonner(
+            Logger(self.portfolio)
+        )
+        self.portfolio.abonner(
+            TableauDeBord(self.portfolio, self.actualiser_tableau_de_bord)
         )
 
         self.mise_a_jour_observateur = MiseAJour(
             self.actualiser_date
         )
-
-        self.logger_observateur = Logger(
-            self.portfolio
-        )
-
-        self.tableau_observateur = TableauDeBord(
-            self.portfolio,
-            self.actualiser_tableau
-        )
-
-        self.portfolio.abonner(
-            self.liste_observateur
-        )
-
-        self.portfolio.abonner(
-            self.total_observateur
-        )
-
-        self.portfolio.abonner(
-            self.alertes_observateur
-        )
-
-        self.portfolio.abonner(
-            self.logger_observateur
-        )
-
-        self.portfolio.abonner(
-            self.tableau_observateur
-        )
-
-    # --------------------------------------------------
-    # INTERFACE
-    # --------------------------------------------------
+        self.portfolio.abonner(self.mise_a_jour_observateur)
 
     def creer_interface(self):
+        tk.Label(
+            self.fenetre,
+            text="Portfolio Tracker",
+            font=POLICE_TITRE,
+        ).pack(pady=10)
 
-        titre = tk.Label(
-            self.root,
-            text="PORTFOLIO TRACKER",
-            font=("Arial", 20, "bold")
-        )
-
-        titre.pack(pady=10)
-
-        # Liste
-        cadre_liste = tk.LabelFrame(
-            self.root,
-            text="Titres"
-        )
-
-        cadre_liste.pack(
-            fill="both",
-            expand=True,
-            padx=20,
-            pady=10
-        )
-
-        self.liste = tk.Listbox(
-            cadre_liste,
-            height=10
-        )
-
-        self.liste.pack(
-            fill="both",
-            expand=True,
+        self.frame_prix = tk.LabelFrame(
+            self.fenetre,
+            text="Prix en temps réel",
             padx=10,
-            pady=10
+            pady=10,
         )
+        self.frame_prix.pack(fill=tk.X, padx=10, pady=5)
 
-        # Total
-        self.label_total = tk.Label(
-            self.root,
-            text="Valeur totale : 0.00 $",
-            font=("Arial", 14)
+        self.creer_gestion()
+
+        frame_portfolio = tk.LabelFrame(
+            self.fenetre,
+            text="Mon portfolio",
+            padx=10,
+            pady=10,
         )
+        frame_portfolio.pack(fill=tk.X, padx=10, pady=5)
 
-        self.label_total.pack(pady=5)
+        self.label_valeur = tk.Label(
+            frame_portfolio,
+            text="Valeur totale : calcul en cours...",
+            font=POLICE_VALEUR,
+        )
+        self.label_valeur.pack()
 
         self.label_variation = tk.Label(
-            self.root,
-            text="Variation : 0.00 %",
-            font=("Arial", 12)
+            frame_portfolio,
+            text="",
         )
+        self.label_variation.pack()
 
-        self.label_variation.pack(pady=5)
-
-        # Tableau
-        self.label_tableau = tk.Label(
-            self.root,
-            text="Nombre de titres : 0 | Quantité : 0"
+        frame_alertes = tk.LabelFrame(
+            self.fenetre,
+            text="Alertes",
+            padx=10,
+            pady=10,
         )
-
-        self.label_tableau.pack(pady=5)
-
-        # Alertes
-        cadre_alertes = tk.LabelFrame(
-            self.root,
-            text="Alertes"
-        )
-
-        cadre_alertes.pack(
-            fill="x",
-            padx=20,
-            pady=10
-        )
+        frame_alertes.pack(fill=tk.X, padx=10, pady=5)
 
         self.label_alertes = tk.Label(
-            cadre_alertes,
-            text="Aucune alerte"
+            frame_alertes,
+            text="Aucune alerte",
+            fg="gray",
+            justify=tk.LEFT,
+            wraplength=500,
         )
+        self.label_alertes.pack(anchor="w")
 
-        self.label_alertes.pack(
+        self.label_maj = tk.Label(
+            self.fenetre,
+            text="",
+            font=("Segoe UI", 9),
+            fg="gray",
+        )
+        self.label_maj.pack(pady=5)
+
+        for ticker in self.portfolio.get_titres():
+            self._creer_ligne_prix(ticker)
+
+    def creer_gestion(self):
+        frame = tk.LabelFrame(
+            self.fenetre,
+            text="Gérer les titres",
             padx=10,
-            pady=10
+            pady=10,
         )
+        frame.pack(fill=tk.X, padx=10, pady=5)
 
-        # Date
-        self.label_date = tk.Label(
-            self.root,
-            text="Dernière mise à jour : --"
+        ligne_ajout = tk.Frame(frame)
+        ligne_ajout.pack(fill=tk.X)
+
+        self.entry_ticker = self._champ(
+            ligne_ajout, "Ticker", 8
         )
-
-        self.label_date.pack(pady=5)
-
-        # Ajout
-        cadre_ajout = tk.LabelFrame(
-            self.root,
-            text="Ajouter un titre"
+        self.entry_quantite = self._champ(
+            ligne_ajout, "Qté", 5, "1"
         )
-
-        cadre_ajout.pack(
-            fill="x",
-            padx=20,
-            pady=10
+        self.entry_seuil_bas_ajout = self._champ(
+            ligne_ajout, "Alerte basse", 7
         )
-
-        tk.Label(
-            cadre_ajout,
-            text="Ticker"
-        ).grid(row=0, column=0)
-
-        self.entry_ticker = tk.Entry(
-            cadre_ajout
-        )
-
-        self.entry_ticker.grid(
-            row=0,
-            column=1
-        )
-
-        tk.Label(
-            cadre_ajout,
-            text="Quantité"
-        ).grid(row=0, column=2)
-
-        self.entry_quantite = tk.Entry(
-            cadre_ajout
-        )
-
-        self.entry_quantite.grid(
-            row=0,
-            column=3
-        )
-
-        tk.Label(
-            cadre_ajout,
-            text="Seuil haut"
-        ).grid(row=1, column=0)
-
-        self.entry_haut = tk.Entry(
-            cadre_ajout
-        )
-
-        self.entry_haut.grid(
-            row=1,
-            column=1
-        )
-
-        tk.Label(
-            cadre_ajout,
-            text="Seuil bas"
-        ).grid(row=1, column=2)
-
-        self.entry_bas = tk.Entry(
-            cadre_ajout
-        )
-
-        self.entry_bas.grid(
-            row=1,
-            column=3
+        self.entry_seuil_haut_ajout = self._champ(
+            ligne_ajout, "Alerte haute", 7
         )
 
         tk.Button(
-            cadre_ajout,
+            ligne_ajout,
             text="Ajouter",
-            command=self.ajouter_titre
-        ).grid(
-            row=2,
-            column=0,
-            columnspan=4,
-            pady=5
+            command=self.ajouter_titre,
+        ).pack(side=tk.LEFT)
+
+        tk.Label(
+            frame,
+            text="(Alertes optionnelles : si vides, ±20% du prix actuel)",
+            font=("Segoe UI", 8),
+            fg="gray",
+        ).pack(anchor="w", pady=(2, 5))
+
+        ligne_liste = tk.Frame(frame)
+        ligne_liste.pack(fill=tk.X)
+
+        self.listbox_titres = tk.Listbox(
+            ligne_liste,
+            height=4,
+            exportselection=False,
+        )
+        self.listbox_titres.pack(
+            side=tk.LEFT,
+            fill=tk.X,
+            expand=True,
         )
 
-        # Bouton supprimer
         tk.Button(
-            self.root,
-            text="Supprimer la sélection",
-            command=self.retirer_titre
-        ).pack(pady=5)
+            ligne_liste,
+            text="Retirer",
+            command=self.retirer_titre,
+        ).pack(side=tk.LEFT, padx=(5, 0), anchor="n")
 
-    # --------------------------------------------------
-    # AJOUTER
-    # --------------------------------------------------
+        ligne_modif = tk.Frame(frame)
+        ligne_modif.pack(fill=tk.X, pady=(8, 0))
 
-    def ajouter_titre(self):
+        tk.Label(
+            ligne_modif,
+            text="Sélection →",
+        ).pack(side=tk.LEFT)
 
-        try:
-            ticker = self.entry_ticker.get().upper()
+        self.entry_nouvelle_quantite = self._champ(
+            ligne_modif, "Qté", 5
+        )
+        self.entry_nouveau_seuil_bas = self._champ(
+            ligne_modif, "Alerte basse", 7
+        )
+        self.entry_nouveau_seuil_haut = self._champ(
+            ligne_modif, "Alerte haute", 7
+        )
 
-            quantite = int(
-                self.entry_quantite.get()
-            )
+        tk.Button(
+            ligne_modif,
+            text="Modifier sélection",
+            command=self.modifier_selection,
+        ).pack(side=tk.LEFT)
 
-            seuil_haut = float(
-                self.entry_haut.get()
-            )
+        self.label_statut_titres = tk.Label(
+            frame,
+            text="",
+            font=("Segoe UI", 9),
+            fg="gray",
+        )
+        self.label_statut_titres.pack(
+            anchor="w",
+            pady=(5, 0),
+        )
 
-            seuil_bas = float(
-                self.entry_bas.get()
-            )
+        self.actualiser_liste(
+            self.portfolio.get_donnees()["titres"]
+        )
 
-            if not ticker:
-                raise ValueError(
-                    "Le ticker est obligatoire."
-                )
+    def _champ(self, parent, texte, width, valeur_defaut=""):
+        tk.Label(
+            parent,
+            text=f"{texte}:",
+        ).pack(side=tk.LEFT)
 
-            if quantite <= 0:
-                raise ValueError(
-                    "La quantité doit être positive."
-                )
+        entry = tk.Entry(parent, width=width)
 
-            prix, ouverture = recuperer_prix(
-                ticker
-            )
+        if valeur_defaut:
+            entry.insert(0, valeur_defaut)
 
-            titre = Titre(
-                ticker,
-                quantite,
-                seuil_haut,
-                seuil_bas
-            )
+        entry.pack(side=tk.LEFT, padx=(2, 8))
+        return entry
 
-            # Observateur du titre
-            observateur_prix = PrixTempsReel(
-                titre,
-                self.actualiser_prix
-            )
-
-            titre.abonner(
-                observateur_prix
-            )
-
-            self.prix_observateurs[ticker] = (
-                observateur_prix
-            )
-
-            titre.mettre_a_jour_prix(
-                prix,
-                ouverture
-            )
-
-            self.portfolio.ajouter_titre(
-                titre
-            )
-
-            self.mise_a_jour_observateur.actualiser()
-
-            messagebox.showinfo(
-                "Succès",
-                f"{ticker} a été ajouté."
-            )
-
-            self.vider_champs()
-
-        except ValueError as erreur:
-
-            messagebox.showerror(
-                "Erreur",
-                str(erreur)
-            )
-
-        except Exception as erreur:
-
-            messagebox.showerror(
-                "Erreur",
-                f"Erreur : {erreur}"
-            )
-
-    # --------------------------------------------------
-    # SUPPRIMER
-    # --------------------------------------------------
-
-    def retirer_titre(self):
-
-        selection = self.liste.curselection()
-
-        if not selection:
-            messagebox.showwarning(
-                "Attention",
-                "Sélectionnez un titre."
-            )
+    def _creer_ligne_prix(self, ticker):
+        if ticker in self.frames_prix:
             return
 
-        ligne = self.liste.get(
-            selection[0]
+        frame = tk.Frame(self.frame_prix)
+        frame.pack(fill=tk.X, pady=2)
+
+        tk.Label(
+            frame,
+            text=f"{ticker}:",
+            width=8,
+            font=("Segoe UI", 10, "bold"),
+            anchor="w",
+        ).pack(side=tk.LEFT)
+
+        label = tk.Label(
+            frame,
+            text="Chargement...",
+        )
+        label.pack(side=tk.LEFT)
+
+        self.labels_prix[ticker] = label
+        self.frames_prix[ticker] = frame
+
+        titre = self.portfolio.get_titre(ticker)
+        observateur = PrixTempsReel(
+            titre,
+            self.actualiser_prix,
+        )
+        titre.abonner(observateur)
+        self.prix_observateurs[ticker] = observateur
+
+    def _texte_listbox(self, ticker):
+        infos = self.portfolio.get_titre(ticker).get_donnees()
+
+        return (
+            f"{ticker} — {infos['quantite']} action(s) "
+            f"(alerte : {infos['seuil_bas']:.2f} $ / "
+            f"{infos['seuil_haut']:.2f} $)"
         )
 
-        ticker = ligne.split(" - ")[0]
+    def _ticker_selectionne(self):
+        selection = self.listbox_titres.curselection()
 
-        self.portfolio.retirer_titre(
-            ticker
+        if not selection:
+            return None
+
+        texte = self.listbox_titres.get(selection[0])
+        return selection[0], texte.split(" — ")[0]
+
+    def _statut(self, texte, couleur):
+        self.label_statut_titres.config(
+            text=texte,
+            fg=couleur,
         )
 
-        if ticker in self.prix_observateurs:
-            del self.prix_observateurs[ticker]
+    def actualiser_prix(self, ticker, prix, variation):
+        if ticker not in self.labels_prix:
+            return
 
-        self.mise_a_jour_observateur.actualiser()
+        symbole = "▲" if variation >= 0 else "▼"
+        couleur = "green" if variation >= 0 else "red"
 
-    # --------------------------------------------------
-    # OBSERVATEUR PRIX
-    # --------------------------------------------------
-
-    def actualiser_prix(
-        self,
-        ticker,
-        prix,
-        variation
-    ):
-
-        # La liste est mise à jour par ListeGestion.
-        pass
-
-    # --------------------------------------------------
-    # OBSERVATEUR LISTE
-    # --------------------------------------------------
+        self.labels_prix[ticker].config(
+            text=f"{prix:.2f} $  {symbole} {abs(variation):.2f}%",
+            fg=couleur,
+        )
 
     def actualiser_liste(self, titres):
+        self.listbox_titres.delete(0, tk.END)
 
-        self.liste.delete(
-            0,
-            tk.END
-        )
-
-        for ticker, titre in titres.items():
-
-            prix = titre["prix"]
-
-            variation = 0
-
-            if titre["ouverture"] != 0:
-                variation = (
-                    (prix - titre["ouverture"])
-                    / titre["ouverture"]
-                ) * 100
-
-            self.liste.insert(
+        for ticker in titres:
+            self.listbox_titres.insert(
                 tk.END,
-                f"{ticker} - "
-                f"{prix:.2f} $ "
-                f"({variation:+.2f} %)"
+                self._texte_listbox(ticker),
             )
 
-    # --------------------------------------------------
-    # OBSERVATEUR TOTAL
-    # --------------------------------------------------
-
-    def actualiser_total(
-        self,
-        total,
-        variation
-    ):
-
-        self.label_total.config(
+    def actualiser_total(self, total, variation):
+        self.label_valeur.config(
             text=f"Valeur totale : {total:.2f} $"
         )
 
-        self.label_variation.config(
-            text=f"Variation : {variation:+.2f} %"
-        )
+        symbole = "▲" if variation >= 0 else "▼"
 
-    # --------------------------------------------------
-    # OBSERVATEUR ALERTES
-    # --------------------------------------------------
+        self.label_variation.config(
+            text=f"{symbole} {abs(variation):.2f}% depuis l'ouverture",
+            fg="green" if variation >= 0 else "red",
+        )
 
     def actualiser_alertes(self, alertes):
-
-        if not alertes:
-
-            self.label_alertes.config(
-                text="Aucune alerte"
-            )
-
-        else:
-
-            self.label_alertes.config(
-                text="\n".join(alertes)
-            )
-
-    # --------------------------------------------------
-    # OBSERVATEUR MISE À JOUR
-    # --------------------------------------------------
+        self.label_alertes.config(
+            text="\n".join(alertes) if alertes else "Aucune alerte",
+            fg="red" if alertes else "gray",
+        )
 
     def actualiser_date(self, date):
-
-        self.label_date.config(
-            text=f"Dernière mise à jour : {date}"
+        self.label_maj.config(
+            text=f"Dernière mise à jour : {date}",
+            fg="gray",
         )
 
-    # --------------------------------------------------
-    # OBSERVATEUR TABLEAU
-    # --------------------------------------------------
-
-    def actualiser_tableau(
+    def actualiser_tableau_de_bord(
         self,
-        nombre,
-        quantite
+        nombre_titres,
+        quantite_totale,
     ):
+        pass
 
-        self.label_tableau.config(
-            text=(
-                f"Nombre de titres : {nombre} | "
-                f"Quantité : {quantite}"
+    def ajouter_titre(self):
+        ticker = self.entry_ticker.get().strip().upper()
+
+        if not ticker:
+            return
+
+        if ticker in self.portfolio.get_titres():
+            self._statut(
+                f"{ticker} est déjà dans le portfolio.",
+                "orange",
             )
-        )
-
-    # --------------------------------------------------
-    # RAFRAÎCHISSEMENT
-    # --------------------------------------------------
-
-    def rafraichir(self):
+            return
 
         try:
+            quantite = entier_positif(
+                self.entry_quantite.get().strip()
+            )
+        except ValueError:
+            self._statut(
+                "La quantité doit être un nombre entier positif.",
+                "red",
+            )
+            return
 
+        texte_bas = self.entry_seuil_bas_ajout.get().strip()
+        texte_haut = self.entry_seuil_haut_ajout.get().strip()
+
+        try:
+            seuil_bas = (
+                flottant_positif(texte_bas)
+                if texte_bas else None
+            )
+            seuil_haut = (
+                flottant_positif(texte_haut)
+                if texte_haut else None
+            )
+        except ValueError:
+            self._statut(
+                "Les alertes doivent être des nombres positifs.",
+                "red",
+            )
+            return
+
+        if (
+            seuil_bas is not None
+            and seuil_haut is not None
+            and seuil_bas >= seuil_haut
+        ):
+            self._statut(
+                "L'alerte basse doit être inférieure à l'alerte haute.",
+                "red",
+            )
+            return
+
+        try:
+            prix, ouverture = recuperer_prix(ticker)
+        except Exception:
+            self._statut(
+                f"Le titre '{ticker}' n'existe pas ou est inaccessible.",
+                "red",
+            )
+            return
+
+        seuil_haut = round(
+            seuil_haut if seuil_haut is not None else prix * 1.2,
+            2,
+        )
+        seuil_bas = round(
+            seuil_bas if seuil_bas is not None else prix * 0.8,
+            2,
+        )
+
+        titre = Titre(
+            ticker,
+            quantite,
+            seuil_haut,
+            seuil_bas,
+        )
+
+        self.portfolio.ajouter_titre(titre)
+        titre.mettre_a_jour_prix(prix, ouverture)
+
+        self._creer_ligne_prix(ticker)
+        self.actualiser_prix(
+            ticker,
+            prix,
+            ((prix - ouverture) / ouverture * 100)
+            if ouverture else 0,
+        )
+
+        self.actualiser_liste(
+            self.portfolio.get_donnees()["titres"]
+        )
+
+        for entry, valeur in (
+            (self.entry_ticker, ""),
+            (self.entry_quantite, "1"),
+            (self.entry_seuil_bas_ajout, ""),
+            (self.entry_seuil_haut_ajout, ""),
+        ):
+            entry.delete(0, tk.END)
+            entry.insert(0, valeur)
+
+        self._statut(
+            f"{ticker} ajouté au portfolio ({quantite} action(s)).",
+            "green",
+        )
+
+    def retirer_titre(self):
+        selection = self._ticker_selectionne()
+
+        if selection is None:
+            self._statut(
+                "Sélectionnez un titre à retirer.",
+                "orange",
+            )
+            return
+
+        _, ticker = selection
+
+        self.portfolio.retirer_titre(ticker)
+
+        if ticker in self.frames_prix:
+            self.frames_prix.pop(ticker).destroy()
+
+        self.labels_prix.pop(ticker, None)
+        self.prix_observateurs.pop(ticker, None)
+
+        self._statut(
+            f"{ticker} retiré du portfolio.",
+            "gray",
+        )
+
+    def modifier_selection(self):
+        selection = self._ticker_selectionne()
+
+        if selection is None:
+            self._statut(
+                "Sélectionnez un titre à modifier.",
+                "orange",
+            )
+            return
+
+        _, ticker = selection
+
+        texte_qte = self.entry_nouvelle_quantite.get().strip()
+        texte_bas = self.entry_nouveau_seuil_bas.get().strip()
+        texte_haut = self.entry_nouveau_seuil_haut.get().strip()
+
+        if not texte_qte and not texte_bas and not texte_haut:
+            self._statut(
+                "Entrez une nouvelle quantité et/ou de nouvelles alertes.",
+                "orange",
+            )
+            return
+
+        titre = self.portfolio.get_titre(ticker)
+        donnees = titre.get_donnees()
+
+        quantite = donnees["quantite"]
+        seuil_bas = donnees["seuil_bas"]
+        seuil_haut = donnees["seuil_haut"]
+
+        try:
+            if texte_qte:
+                quantite = entier_positif(texte_qte)
+
+            if texte_bas or texte_haut:
+                if not (texte_bas and texte_haut):
+                    self._statut(
+                        "Les deux alertes doivent être fournies ensemble.",
+                        "red",
+                    )
+                    return
+
+                seuil_bas = flottant_positif(texte_bas)
+                seuil_haut = flottant_positif(texte_haut)
+
+                if seuil_bas >= seuil_haut:
+                    self._statut(
+                        "L'alerte basse doit être inférieure à l'alerte haute.",
+                        "red",
+                    )
+                    return
+
+        except ValueError:
+            self._statut(
+                "La quantité et les alertes doivent être des nombres positifs.",
+                "red",
+            )
+            return
+
+        titre.modifier(
+            quantite,
+            round(seuil_haut, 2),
+            round(seuil_bas, 2),
+        )
+
+        self.portfolio.notifier()
+
+        self.actualiser_liste(
+            self.portfolio.get_donnees()["titres"]
+        )
+
+        for entry in (
+            self.entry_nouvelle_quantite,
+            self.entry_nouveau_seuil_bas,
+            self.entry_nouveau_seuil_haut,
+        ):
+            entry.delete(0, tk.END)
+
+        self._statut(
+            f"{ticker} mis à jour.",
+            "green",
+        )
+
+    def rafraichir(self):
+        try:
             prix_actuels = {}
 
-            for ticker in self.portfolio.get_titres():
-
-                prix, ouverture = recuperer_prix(
-                    ticker
-                )
+            for ticker in list(self.portfolio.get_titres()):
+                prix, ouverture = recuperer_prix(ticker)
 
                 prix_actuels[ticker] = {
                     "prix": prix,
-                    "ouverture": ouverture
+                    "ouverture": ouverture,
                 }
 
-            self.portfolio.mise_a_jour(
-                prix_actuels
+            self.portfolio.mise_a_jour(prix_actuels)
+
+        except Exception as e:
+            self.label_maj.config(
+                text=f"Erreur lors du rafraîchissement : {e}",
+                fg="red",
             )
 
-            self.mise_a_jour_observateur.actualiser()
-
-        except Exception as erreur:
-
-            print(
-                f"Erreur lors du rafraîchissement : {erreur}"
-            )
-
-        self.root.after(
+        self.fenetre.after(
             INTERVALLE_MS,
-            self.rafraichir
+            self.rafraichir,
         )
-
-    # --------------------------------------------------
-    # UTILITAIRE
-    # --------------------------------------------------
-
-    def vider_champs(self):
-
-        self.entry_ticker.delete(
-            0,
-            tk.END
-        )
-
-        self.entry_quantite.delete(
-            0,
-            tk.END
-        )
-
-        self.entry_haut.delete(
-            0,
-            tk.END
-        )
-
-        self.entry_bas.delete(
-            0,
-            tk.END
-        )
-
-    # --------------------------------------------------
-    # LANCER
-    # --------------------------------------------------
 
     def lancer(self):
-        self.root.mainloop()
+        self.rafraichir()
+        self.fenetre.mainloop()
+
+
+if __name__ == "__main__":
+    App().lancer()

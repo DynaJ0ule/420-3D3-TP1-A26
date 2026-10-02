@@ -9,8 +9,5 @@ class MiseAJour(Observateur):
         self._callback = callback
 
     def actualiser(self):
-        maintenant = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
-
+        maintenant = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self._callback(maintenant)

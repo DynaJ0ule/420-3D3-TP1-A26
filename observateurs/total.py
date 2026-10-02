@@ -7,21 +7,20 @@ class Total(Observateur):
     def actualiser(self):
         titres = self._portfolio.get_donnees()["titres"]
 
-        total = 0
-        valeur_ouverture = 0
+        total = sum(
+            titre["prix"] * titre["quantite"]
+            for titre in titres.values()
+        )
 
-        for titre in titres.values():
-            total += titre["prix"] * titre["quantite"]
-            valeur_ouverture += (
-                titre["ouverture"] * titre["quantite"]
-            )
+        valeur_ouverture = sum(
+            titre["ouverture"] * titre["quantite"]
+            for titre in titres.values()
+        )
 
-        if valeur_ouverture != 0:
-            variation = (
-                (total - valeur_ouverture)
-                / valeur_ouverture
-            ) * 100
-        else:
-            variation = 0
+        variation = (
+            (total - valeur_ouverture) / valeur_ouverture * 100
+            if valeur_ouverture
+            else 0
+        )
 
         self._callback(total, variation)

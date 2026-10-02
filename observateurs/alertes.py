@@ -6,7 +6,6 @@ class Alertes(Observateur):
 
     def actualiser(self):
         titres = self._portfolio.get_donnees()["titres"]
-
         alertes = []
 
         for titre in titres.values():
@@ -17,14 +16,13 @@ class Alertes(Observateur):
 
             if prix >= seuil_haut:
                 alertes.append(
-                    f"{ticker} a dépassé le seuil haut : "
-                    f"{prix:.2f} $"
+                    f"⚠️ {ticker} dépasse le seuil haut "
+                    f"({prix:.2f} $ ≥ {seuil_haut:.2f} $)"
                 )
-
             elif prix <= seuil_bas:
                 alertes.append(
-                    f"{ticker} a dépassé le seuil bas : "
-                    f"{prix:.2f} $"
+                    f"⚠️ {ticker} sous le seuil bas "
+                    f"({prix:.2f} $ ≤ {seuil_bas:.2f} $)"
                 )
 
         self._callback(alertes)

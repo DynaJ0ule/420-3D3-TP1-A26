@@ -8,13 +8,9 @@ class TableauDeBord(Observateur):
         titres = self._portfolio.get_donnees()["titres"]
 
         nombre_titres = len(titres)
-
         quantite_totale = sum(
             titre["quantite"]
             for titre in titres.values()
         )
 
-        self._callback(
-            nombre_titres,
-            quantite_totale
-        )
+        self._callback(nombre_titres, quantite_totale)
