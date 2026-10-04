@@ -220,4 +220,4 @@ __marimo__/
 .streamlit/secrets.toml
 
 # csv log
-.csv
+portfolio.csv
