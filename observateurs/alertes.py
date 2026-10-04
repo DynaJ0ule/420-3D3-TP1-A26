@@ -19,8 +19,7 @@ class Alertes(Observateur):
             prix = titre["prix"]
             seuil_haut = titre["seuil_haut"]
             seuil_bas = titre["seuil_bas"]
-            if prix <= 0:
-                continue
+            
 
             if prix >= seuil_haut:
                 alertes.append(

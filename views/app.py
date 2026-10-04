@@ -381,11 +381,24 @@ class App:
             fg="green" if variation >= 0 else "red",
         )
 
+    
     def actualiser_alertes(self, alertes):
+
+        alertes_valides = []
+
+        for alerte in alertes:
+        # Exemple :
+        # ⚠️ AAPL dépasse le seuil haut (250.00 $ ≥ 200.00 $)
+
+            if "(0.00 $" not in alerte:
+                alertes_valides.append(alerte)
+
         self.label_alertes.config(
-            text="\n".join(alertes) if alertes else "Aucune alerte",
-            fg="red" if alertes else "gray",
+            text="\n".join(alertes_valides) if alertes_valides else "Aucune alerte",
+            fg="red" if alertes_valides else "gray",
         )
+
+
 
     def actualiser_date(self, date):
         self.label_maj.config(
