@@ -1,9 +1,6 @@
 import tkinter as tk
-from tkinter import messagebox
 from datetime import datetime
 import yfinance as yf
-
-
 
 from modeles.portfolio import Portfolio
 from modeles.titre import Titre
@@ -14,7 +11,6 @@ from observateurs.total import Total
 from observateurs.alertes import Alertes
 from observateurs.mise_a_jour import MiseAJour
 from observateurs.logger import Logger
-from observateurs.tableau_de_bord import TableauDeBord
 
 INTERVALLE_MS = 30000
 
@@ -398,7 +394,7 @@ class App:
         nombre_titres,
         quantite_totale,
     ):
-        pass
+        pass #bro.....
 
     def ajouter_titre(self):
         ticker = self.entry_ticker.get().strip().upper()
