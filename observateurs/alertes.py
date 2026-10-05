@@ -1,11 +1,15 @@
 from observateurs.observateur import Observateur
-
+import tkinter as tk
 
 class Alertes(Observateur):
 
-    def __init__(self, portfolio, callback):
-        self._portfolio = portfolio
-        self._callback = callback
+    def __init__(self, fenetre):
+        self._frame_alertes = tk.LabelFrame(fenetre, text="Alertes", padx=10, pady=10)
+        self._frame_alertes.pack(fill=tk.X, padx=10, pady=5)
+        self._label_alertes = tk.Label(
+            self._frame_alertes, text="Aucune alerte", fg="gray", justify=tk.LEFT, wraplength=380
+        )
+        self._label_alertes.pack(anchor="w")
 
     def actualiser(self):
         donnees = self._portfolio.get_donnees()
@@ -34,4 +38,7 @@ class Alertes(Observateur):
                     f"({prix:.2f} $ ≤ {seuil_bas:.2f} $)"
                 )
 
-        self._callback(alertes)
+        self._label_alertes.config(
+            text="\n".join(alertes) if alertes else "Aucune alerte",
+            fg="red" if alertes else "gray",
+        )
