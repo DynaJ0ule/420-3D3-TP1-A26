@@ -94,26 +94,18 @@ class App:
             self.portfolio.ajouter_titre(titre)
 
     def creer_observateurs(self):
-        self.portfolio.abonner(
-            ListeGestion(self.portfolio, self.actualiser_liste)
-        )
-        self.portfolio.abonner(
-            Total(self.portfolio, self.actualiser_total)
-        )
-        self.portfolio.abonner(
-            Alertes(self.portfolio, self.actualiser_alertes)
-        )
-        self.portfolio.abonner(
-            Logger(self.portfolio)
-        )
-        self.portfolio.abonner(
-            TableauDeBord(self.portfolio, self.actualiser_tableau_de_bord)
-        )
 
-        self.mise_a_jour_observateur = MiseAJour(
-            self.actualiser_date
-        )
-        self.portfolio.abonner(self.mise_a_jour_observateur)
+        observateurs = [
+        ListeGestion(self.portfolio, self.actualiser_liste),
+        Total(self.portfolio, self.actualiser_total),
+        Alertes(self.portfolio, self.actualiser_alertes),
+        Logger(self.portfolio),
+        TableauDeBord(self.portfolio, self.actualiser_tableau_de_bord),
+        MiseAJour(self.actualiser_date),
+        ]
+
+        for observateur in observateurs:
+            self.portfolio.abonner(observateur)
 
     def creer_interface(self):
         tk.Label(
