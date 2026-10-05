@@ -1,4 +1,5 @@
 from modeles.sujet import Sujet
+from modeles.titre import Titre
 
 class Portfolio(Sujet):
     def __init__(self):
@@ -19,14 +20,12 @@ class Portfolio(Sujet):
 
     def get_donnees(self) -> dict:
         return {
-            "titres": {
-                ticker: titre.get_donnees()
-                for ticker, titre in self._titres.items()
-            }
+            ticker: titre.get_donnees() #TODO: dictionnaire ou liste?
+            for ticker, titre in self._titres.items()
         }
 
     def ajouter_titre(self, titre):
-        self._titres[titre.ticker] = titre
+        self._titres.append(titre)
         self.notifier()
 
     def modifier_titre(
@@ -37,7 +36,7 @@ class Portfolio(Sujet):
         seuil_bas
     ):
         if ticker in self._titres:
-            self._titres[ticker].modifier(
+            self._titres.modifier(
                 quantite,
                 seuil_haut,
                 seuil_bas

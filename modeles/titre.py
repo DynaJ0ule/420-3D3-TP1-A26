@@ -1,6 +1,5 @@
 from modeles.sujet import Sujet
 
-
 class Titre(Sujet):
     """Sujet représentant un titre boursier."""
 
@@ -25,9 +24,11 @@ class Titre(Sujet):
         for observateur in self._observateurs:
             observateur.actualiser()
 
+    def get_ticker(self):
+        return self._ticker
+
     def get_donnees(self):
         return {
-            "ticker": self._ticker,
             "prix": self._prix,
             "ouverture": self._ouverture,
             "quantite": self._quantite,
@@ -48,7 +49,3 @@ class Titre(Sujet):
         if seuil_bas is not None:
             self._seuil_bas = seuil_bas
         self.notifier()
-
-    @property
-    def ticker(self):
-        return self._ticker
