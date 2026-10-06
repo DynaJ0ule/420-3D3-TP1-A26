@@ -10,17 +10,30 @@ classDiagram
 	}
 	class Observateur{
 		<<interface>>
-		+actualiser()
+		+actualiser(sujet)
 	}
-	class PrixTempsReel
+	class PrixTempsReel{
+		+actualiser(sujet)
+	}
 	class ListeGestion{
-	- _statut
+		+actualiser(sujet)
+		+ticker_selectione() -> str
 	}
-	class Total
-	class Alertes
-	class MiseAJour
-	class Logger
-	class TableauDeBord
+	class Total{
+		+actualiser(sujet)
+	}
+	class Alertes{
+		+actualiser(sujet)
+	}
+	class MiseAJour{
+		+actualiser(sujet)
+	}
+	class Logger{
+		+actualiser(sujet)
+	}
+	class Dashboard{
+		-_champ() -> tkinter.Entry
+	}
 	class Portfolio{
 		- _titres: dict
 		+ ajouter_titre()
