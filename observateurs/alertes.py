@@ -11,8 +11,8 @@ class Alertes(Observateur):
         )
         self._label_alertes.pack(anchor="w")
 
-    def actualiser(self):
-        donnees = self._portfolio.get_donnees()
+    def actualiser(self,sujet):
+        donnees = sujet.get_donnees()
         titres = donnees["titres"]
 
         alertes = []

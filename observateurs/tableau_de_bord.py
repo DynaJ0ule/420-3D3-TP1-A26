@@ -1,16 +1,26 @@
 from observateurs.observateur import Observateur
-class TableauDeBord(Observateur):
-    def __init__(self, portfolio, callback):
-        self._portfolio = portfolio
-        self._callback = callback
+import tkinter as tk
 
-    def actualiser(self):
-        titres = self._portfolio.get_donnees()["titres"]
+
+class TableauDeBord(Observateur):
+
+    def __init__(self, fenetre):
+        self._label = tk.Label(
+            fenetre,
+            text="0 titres — 0 actions"
+        )
+        self._label.pack(pady=5)
+
+    def actualiser(self, sujet):
+        titres = sujet.get_donnees()["titres"]
 
         nombre_titres = len(titres)
+
         quantite_totale = sum(
             titre["quantite"]
             for titre in titres.values()
         )
 
-        self._callback(nombre_titres, quantite_totale)
+        self._label.config(
+            text=f"{nombre_titres} titres — {quantite_totale} actions"
+        )

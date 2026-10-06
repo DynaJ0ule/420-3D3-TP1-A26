@@ -16,33 +16,37 @@ class Portfolio(Sujet):
 
     def notifier(self):
         for observateur in self._observateurs:
-            observateur.actualiser()
+            observateur.actualiser(self)
 
-    def get_donnees(self) -> dict:
+    def get_donnees(self):
         return {
-            ticker: titre.get_donnees() #TODO: dictionnaire ou liste?
+        "titres": {
+            ticker: titre.get_donnees()
             for ticker, titre in self._titres.items()
         }
+        }
+        
 
-    def ajouter_titre(self, ticker, quantite, seuil_haut, seuil_bas):
-        self._titres[ticker]
+    def ajouter_titre( self, ticker, quantite, seuil_haut, seuil_bas ): 
+        if ticker in self._titres: 
+            raise ValueError( f"Le titre {ticker} existe déjà." ) 
+        titre = Titre( ticker, quantite, seuil_haut, seuil_bas ) 
+        self._titres[ticker] = titre
         self.notifier()
 
-    def modifier_titre(
-        self,
-        ticker,
+    def modifier_titre(self,ticker,quantite=None,seuil_haut=None,seuil_bas=None):
+        if ticker not in self._titres:
+            raise ValueError(
+            f"Le titre {ticker} n'existe pas dans le portfolio."
+            )
+
+        self._titres[ticker].modifier(
         quantite,
         seuil_haut,
         seuil_bas
-    ):
-        if ticker in self._titres:
-            self._titres[ticker]["quantite"] = quantite
-            self._titres[ticker]["seuil_haut"] = seuil_haut
-            self._titres[ticker]["seuil_bas"] = seuil_bas
-            self.notifier()
-        else:
-            raise ValueError(f"Le titre {ticker} n'existe pas dans le portfolio.")
+         )
 
+        self.notifier()
     def retirer_titre(self, ticker):
         if ticker in self._titres:
             del self._titres[ticker]
