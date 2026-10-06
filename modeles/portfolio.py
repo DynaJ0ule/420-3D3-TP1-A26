@@ -4,7 +4,7 @@ from modeles.titre import Titre
 class Portfolio(Sujet):
     def __init__(self):
         self._observateurs = []
-        self._titres = {}
+        self._titres = {} #ticker: str : {titre :Titre , quantite: int, seuil_haut: float, seuil_bas: float}
 
     def abonner(self, observateur):
         if observateur not in self._observateurs:
@@ -24,8 +24,8 @@ class Portfolio(Sujet):
             for ticker, titre in self._titres.items()
         }
 
-    def ajouter_titre(self, titre):
-        self._titres.append(titre)
+    def ajouter_titre(self, ticker, quantite, seuil_haut, seuil_bas):
+        self._titres[ticker]
         self.notifier()
 
     def modifier_titre(
@@ -36,12 +36,12 @@ class Portfolio(Sujet):
         seuil_bas
     ):
         if ticker in self._titres:
-            self._titres.modifier(
-                quantite,
-                seuil_haut,
-                seuil_bas
-            )
+            self._titres[ticker]["quantite"] = quantite
+            self._titres[ticker]["seuil_haut"] = seuil_haut
+            self._titres[ticker]["seuil_bas"] = seuil_bas
             self.notifier()
+        else:
+            raise ValueError(f"Le titre {ticker} n'existe pas dans le portfolio.")
 
     def retirer_titre(self, ticker):
         if ticker in self._titres:
