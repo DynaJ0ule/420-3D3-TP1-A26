@@ -8,6 +8,9 @@ class Titre(Sujet):
         self._ticker = ticker
         self._prix = 0.0
         self._ouverture = 0.0
+        self._quantite = quantite
+        self._seuil_haut = seuil_haut
+        self._seuil_bas = seuil_bas
 
     def abonner(self, observateur):
         if observateur not in self._observateurs:
@@ -26,8 +29,12 @@ class Titre(Sujet):
 
     def get_donnees(self):
         return {
+            "ticker": self._ticker,
             "prix": self._prix,
-            "ouverture": self._ouverture
+            "ouverture": self._ouverture,
+            "quantite": self._quantite,
+            "seuil_haut": self._seuil_haut,
+            "seuil_bas": self._seuil_bas,
         }
 
     def mettre_a_jour_prix(self, prix, ouverture):

@@ -1,5 +1,5 @@
 from observateurs.observateur import Observateur
-import tkinter as tk
+
 
 class ListeGestion(Observateur):
     def __init__(self, parent):

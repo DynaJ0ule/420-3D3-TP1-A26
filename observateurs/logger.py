@@ -18,10 +18,10 @@ class Logger(Observateur):
         ) as fichier:
             writer = csv.writer(fichier)
 
-        for titre in titres.values():
-            writer.writerow([
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                titre["ticker"],
-                f'{titre["prix"]:.2f}',
-                f'{titre["ouverture"]:.2f}',
-            ])
+            for titre in titres.values():
+                writer.writerow([
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    titre["ticker"],
+                    f'{titre["prix"]:.2f}',
+                    f'{titre["ouverture"]:.2f}',
+                ])
